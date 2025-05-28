@@ -1,26 +1,25 @@
+from openai import OpenAI
 import os
 import json
-from openai import OpenAI
 from typing import Dict, Any, List
+import time
 
-# Initialize OpenAI client
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-# Example 1: Simple weather function
+# Example 1
+
+
 def get_weather(location: str, unit: str = "celsius") -> Dict[str, Any]:
     """Mock function to get weather data"""
-    # In a real application, this would call a weather API
     mock_weather_data = {
         "New York": {"temperature": 22, "condition": "Sunny"},
         "London": {"temperature": 18, "condition": "Cloudy"},
         "Tokyo": {"temperature": 25, "condition": "Partly cloudy"},
     }
-
     weather = mock_weather_data.get(
         location, {"temperature": 20, "condition": "Unknown"}
     )
-
     if unit == "fahrenheit":
         weather["temperature"] = weather["temperature"] * 9 / 5 + 32
 
@@ -32,21 +31,21 @@ def get_weather(location: str, unit: str = "celsius") -> Dict[str, Any]:
     }
 
 
-# Example 2: Calculator functions
 def calculate(operation: str, a: float, b: float) -> float:
-    """Perform basic arithmetic operations"""
+    """Performs basic artihmetic operations"""
     operations = {
         "add": lambda x, y: x + y,
         "subtract": lambda x, y: x - y,
         "multiply": lambda x, y: x * y,
-        "divide": lambda x, y: x / y if y != 0 else "Error: Division by zero",
+        "divide": lambda x, y: (
+            x / y if y != 0 else "Error: Divizion by zero isn't allowed"
+        ),
     }
-    return operations.get(operation, lambda x, y: "Error: Unknown operation")(a, b)
+    return operations.get(operation, lambda x, y: "Error Unknown Operation")(a, b)
 
 
 def convert_units(value: float, from_unit: str, to_unit: str) -> Dict[str, Any]:
     """Convert between different units"""
-    # Simple conversion factors (to meters as base)
     to_meters = {
         "meters": 1,
         "feet": 0.3048,
@@ -54,11 +53,9 @@ def convert_units(value: float, from_unit: str, to_unit: str) -> Dict[str, Any]:
         "kilometers": 1000,
         "miles": 1609.34,
     }
-
     if from_unit not in to_meters or to_unit not in to_meters:
         return {"error": "Unsupported unit"}
 
-    # Convert to meters first, then to target unit
     value_in_meters = value * to_meters[from_unit]
     converted_value = value_in_meters / to_meters[to_unit]
 
@@ -70,28 +67,33 @@ def convert_units(value: float, from_unit: str, to_unit: str) -> Dict[str, Any]:
     }
 
 
-# Function schemas for OpenAI
+# Function schema for OpenAI
+
 weather_function = {
+    "type": "function",
     "name": "get_weather",
-    "description": "Get the current weather in a given location",
+    "description": "Get the weather in a given location",
     "parameters": {
         "type": "object",
         "properties": {
             "location": {
                 "type": "string",
-                "description": "The city name, e.g. New York, London, Tokyo",
+                "description": "The city name like New York, London, Tokyo",
             },
             "unit": {
                 "type": "string",
-                "enum": ["celsius", "fahrenheit"],
+                "emum": ["celsius", "fahrenheit"],
                 "description": "The temperature unit",
             },
         },
-        "required": ["location"],
+        "required": ["location", "unit"],
+        "additionalProperties": False,
     },
+    "strict": True,
 }
 
 calculator_function = {
+    "type": "function",
     "name": "calculate",
     "description": "Perform basic arithmetic operations",
     "parameters": {
@@ -106,10 +108,13 @@ calculator_function = {
             "b": {"type": "number", "description": "The second number"},
         },
         "required": ["operation", "a", "b"],
+        "additionalProperties": False,
     },
+    "strict": True,
 }
 
 converter_function = {
+    "type": "function",
     "name": "convert_units",
     "description": "Convert values between different units of measurement",
     "parameters": {
@@ -128,105 +133,69 @@ converter_function = {
             },
         },
         "required": ["value", "from_unit", "to_unit"],
+        "additionalProperties": False,
     },
+    "strict": True,
 }
 
 
 def run_conversation(messages: List[Dict[str, str]], functions: List[Dict]) -> str:
     """Run a conversation with function calling"""
-    # Available functions mapping
     available_functions = {
         "get_weather": get_weather,
         "calculate": calculate,
         "convert_units": convert_units,
     }
 
-    # Initial API call
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=messages,
-        functions=functions,
-        function_call="auto",
+    # API Call
+    response = client.responses.create(
+        model="gpt-4.1", input=messages, tools=functions, tool_choice="auto"
     )
 
-    response_message = response.choices[0].message
+    tool_call = response.output[0]
 
-    # Check if GPT wants to call a function
-    if response_message.function_call:
-        function_name = response_message.function_call.name
-        function_args = json.loads(response_message.function_call.arguments)
+    while tool_call.type == "function_call":
+        function_name = tool_call.name
+        function_args = json.loads(tool_call.arguments)
 
-        # Call the function
         function_to_call = available_functions[function_name]
         function_response = function_to_call(**function_args)
 
-        # Add function response to messages
-        messages.append(response_message.model_dump())
+        messages.append(tool_call)
+
         messages.append(
             {
-                "role": "function",
-                "name": function_name,
-                "content": json.dumps(function_response),
+                "type": "function_call_output",
+                "call_id": tool_call.call_id,
+                "output": json.dumps(function_response),
             }
         )
 
-        # Get final response from GPT
-        second_response = client.chat.completions.create(
-            model="gpt-3.5-turbo", messages=messages
+        response = client.responses.create(
+            model="gpt-4.1", input=messages, tools=functions
         )
 
-        return second_response.choices[0].message.content
+        tool_call = response.output[0]
 
-    return response_message.content
+    return response.output_text
 
 
 def main():
-    print("=== OpenAI Function Calling Examples ===\n")
+    print("-- OpenAI Function calling example -- ")
 
-    # Example 1: Weather lookup
-    print("Example 1: Weather Lookup")
-    print("-" * 30)
-
-    weather_messages = [
-        {"role": "user", "content": "What's the weather like in New York and Tokyo?"}
-    ]
-
-    result = run_conversation(weather_messages, [weather_function])
-    print(f"User: {weather_messages[0]['content']}")
-    print(f"Assistant: {result}\n")
-
-    # Example 2: Calculator and converter
-    print("Example 2: Calculator and Unit Converter")
-    print("-" * 30)
-
-    calc_messages = [
+    message = [
         {
             "role": "user",
-            "content": "What is 25 multiplied by 4? Also, convert 100 feet to meters.",
-        }
-    ]
-
-    result = run_conversation(calc_messages, [calculator_function, converter_function])
-    print(f"User: {calc_messages[0]['content']}")
-    print(f"Assistant: {result}\n")
-
-    # Example 3: Complex calculation
-    print("Example 3: Complex Request")
-    print("-" * 30)
-
-    complex_messages = [
-        {
-            "role": "user",
-            "content": "If I'm traveling 60 miles, how many kilometers is that? And what's 60 divided by 2.5?",
+            "content": "If I'm travelling 60 miles, how many kilometers is that? And what's 60 divided by 2.5? And, what's the weather like in London?",
         }
     ]
 
     result = run_conversation(
-        complex_messages, [calculator_function, converter_function]
+        message, [calculator_function, converter_function, weather_function]
     )
-    print(f"User: {complex_messages[0]['content']}")
-    print(f"Assistant: {result}\n")
+
+    print(f"User: {message[0]['content']}")
+    print(f"Assistant: {result}")
 
 
-if __name__ == "__main__":
-    main()
+main()
