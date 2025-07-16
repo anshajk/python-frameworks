@@ -1,4 +1,5 @@
 import datetime
+
 from zoneinfo import ZoneInfo
 from google.adk.agents import Agent
 
@@ -19,14 +20,13 @@ def get_weather(city: str) -> dict:
         return {
             "status": "success",
             "report": (
-                "The weather in New York is sunny with a temperature of 25 degrees"
-                " Celsius (77 degrees Fahrenheit)."
+                "The weather in New York is sunny with a temperature of 25 degree celsius"
             ),
         }
     else:
         return {
             "status": "error",
-            "error_message": f"Weather information for '{city}' is not available.",
+            "error_message": f"Weather information for {city} is not available",
         }
 
 
@@ -60,12 +60,10 @@ mcp_tool = MCPToolset(
         args=["/Users/art/Projects/python-frameworks/ai/fastmcp/server.py"],
     )
 )
+
 root_agent = Agent(
-    name="weather_time_agent",
-    model="gemini-2.0-flash-001",
-    description=("Agent to answer questions about the time and weather in a city."),
-    instruction=(
-        "You are a helpful agent who can answer user questions about the time and weather in a city."
-    ),
+    name="IK_Weather_agent",
+    model="gemini-2.0-flash",
+    description=("Agent to answer questions about the time and weather in a city"),
     tools=[get_weather, get_current_time, mcp_tool],
 )

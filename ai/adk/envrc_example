@@ -1,0 +1,12 @@
+export GOOGLE_CLOUD_PROJECT=""
+
+export GOOGLE_CLOUD_LOCATION="us-central1" 
+
+
+export AGENT_PATH="./ik_coding_agent" 
+
+export SERVICE_NAME="coding_agent"
+
+# Set an application name (optional)
+export APP_NAME="ai_coding_agent"
+
