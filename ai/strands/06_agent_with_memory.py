@@ -4,7 +4,7 @@ This example demonstrates how to maintain conversation context and memory in Str
 """
 
 from strands import Agent, tool
-from typing import List, Dict
+from typing import List, Dict, Any
 import json
 
 
@@ -15,12 +15,12 @@ class ConversationMemory:
         self.memory = {}
         self.history = []
     
-    def store(self, key: str, value: any):
+    def store(self, key: str, value: Any):
         """Store information in memory."""
         self.memory[key] = value
         self.history.append({"action": "store", "key": key, "value": value})
     
-    def retrieve(self, key: str) -> any:
+    def retrieve(self, key: str) -> Any:
         """Retrieve information from memory."""
         return self.memory.get(key)
     

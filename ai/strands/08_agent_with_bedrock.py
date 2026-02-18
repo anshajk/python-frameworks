@@ -4,12 +4,12 @@ This example demonstrates how to use Strands with AWS Bedrock models.
 """
 
 from strands import Agent, tool
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 import os
 
 
 @tool
-def analyze_text(text: str) -> Dict[str, any]:
+def analyze_text(text: str) -> Dict[str, Any]:
     """
     Analyze text and extract key information.
     
