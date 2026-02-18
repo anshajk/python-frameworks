@@ -34,6 +34,24 @@ pip install strands-agents strands-agents-tools
 pip install boto3
 ```
 
+## Quick Start
+
+You can run examples individually or use the interactive runner:
+
+```bash
+# Interactive menu
+python run_examples.py
+
+# Run a specific example by number
+python run_examples.py 1
+
+# Run a specific example by filename
+python run_examples.py 01_basic_agent.py
+
+# Or run examples directly
+python 01_basic_agent.py
+```
+
 ## Examples
 
 ### Basic Examples (01-03)
