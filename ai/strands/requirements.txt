@@ -1,0 +1,12 @@
+# AWS Strands SDK Requirements
+
+# Core Strands SDK
+strands-agents>=0.1.0
+strands-agents-tools>=0.1.0
+
+# AWS SDK for Bedrock integration
+boto3>=1.34.0
+
+# Optional: Additional model providers
+# openai>=1.0.0  # For OpenAI models
+# anthropic>=0.18.0  # For direct Anthropic API access
